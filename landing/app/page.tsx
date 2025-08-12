@@ -6,6 +6,7 @@ import { FAQSection } from "@/components/faq-section"
 import { FOMOSection } from "@/components/fomo-section"
 import { FinalCTASection } from "@/components/final-cta-section"
 import { AnimatedSection } from "@/components/animated-section"
+import { FooterSection } from "@/components/footer-section"
 import { EmailPopupProvider } from "@/components/email-popup-provider"
 
 export default function VeltoLandingPage() {
@@ -41,6 +42,9 @@ export default function VeltoLandingPage() {
             <FinalCTASection />
           </AnimatedSection>
         </div>
+
+        {/* Footer */}
+        <FooterSection />
       </div>
     </EmailPopupProvider>
   )

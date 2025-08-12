@@ -523,7 +523,7 @@ export function HeroSection() {
         <Header />
       </div>
 
-      <div className="relative z-10 space-y-6 mb-8 max-w-4xl mt-32 md:mt-40 lg:mt-48 px-4">
+      <div className="relative z-10 space-y-6 mb-8 max-w-4xl mt-40 md:mt-48 lg:mt-56 px-4">
         <h1 className="text-foreground text-4xl md:text-5xl lg:text-7xl font-semibold leading-tight">
           Your AI brain. Always with you.
         </h1>

@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -10,12 +11,23 @@ import { useEmailPopup } from "./email-popup-provider"
 
 export function Header() {
   const { openPopup } = useEmailPopup()
+  const [isScrolled, setIsScrolled] = useState(false)
 
   const navItems = [
     { name: "How It Works", href: "#how-it-works" },
     { name: "FAQ", href: "#faq" },
     { name: "Early Access", href: "#early-access" },
   ]
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY
+      setIsScrolled(scrollTop > 50)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault()
@@ -27,7 +39,11 @@ export function Header() {
   }
 
   return (
-    <header className="w-full py-4 px-6">
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full py-4 px-6 transition-all duration-300 ${
+      isScrolled 
+        ? 'bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg' 
+        : 'bg-transparent'
+    }`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
@@ -39,7 +55,11 @@ export function Header() {
                 key={item.name}
                 href={item.href}
                 onClick={(e) => handleScroll(e, item.href)}
-                className="text-muted-foreground hover:text-foreground px-4 py-2 rounded-full font-medium transition-colors"
+                className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                  isScrolled 
+                    ? 'text-muted-foreground hover:text-foreground' 
+                    : 'text-foreground/90 hover:text-foreground'
+                }`}
               >
                 {item.name}
               </Link>
