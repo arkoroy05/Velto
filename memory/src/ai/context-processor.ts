@@ -414,7 +414,7 @@ export const getContextProcessor = (): ContextProcessor => {
 
 // Export getter function instead of direct instance
 export const contextProcessor = new Proxy({} as ContextProcessor, {
-  get(target, prop) {
+  get(_target, prop) {
     const instance = getContextProcessor()
     return instance[prop as keyof ContextProcessor]
   }
