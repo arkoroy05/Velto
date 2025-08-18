@@ -217,10 +217,13 @@ router.post('/', async (req, res): Promise<void> => {
       preferences: {
         ...validatedData.preferences,
         defaultProjectId: validatedData.preferences.defaultProjectId || '',
+        theme: validatedData.preferences.theme || 'auto',
         notifications: {
-          ...validatedData.preferences.notifications,
+          email: validatedData.preferences.notifications.email ?? true,
+          push: validatedData.preferences.notifications.push ?? true,
           slack: validatedData.preferences.notifications.slack || false
-        }
+        },
+        aiProvider: validatedData.preferences.aiProvider || 'anthropic'
       },
       apiKeys: validatedData.apiKeys.map(key => ({
         name: key.name,
@@ -476,8 +479,8 @@ router.delete('/:id/api-keys/:keyName', extractUserId, async (req, res): Promise
 
     logger.info(`API key deleted for user: ${id}`)
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       message: 'API key deleted successfully'
     })
   } catch (error) {

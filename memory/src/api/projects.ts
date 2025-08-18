@@ -187,7 +187,12 @@ router.post('/', extractUserId, async (req, res): Promise<void> => {
       description: validatedData.description || '',
       isPublic: validatedData.isPublic,
       tags: validatedData.tags,
-      settings: validatedData.settings,
+      settings: {
+        autoCategorize: validatedData.settings.autoCategorize,
+        chunkSize: validatedData.settings.chunkSize,
+        maxTokens: validatedData.settings.maxTokens,
+        aiModel: validatedData.settings.aiModel
+      },
       userId: new ObjectId(req.userId!),
       collaborators: [
         { userId: new ObjectId(req.userId!), role: 'owner', addedAt: new Date() },
@@ -434,8 +439,8 @@ router.post('/:id/collaborators', extractUserId, async (req, res): Promise<void>
 
     logger.info(`Collaborator added to project: ${id}`)
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       message: 'Collaborator added successfully'
     })
   } catch (error) {

@@ -531,8 +531,8 @@ router.post('/:id/regenerate-secret', extractUserId, async (req, res): Promise<v
 
     logger.info(`Webhook secret regenerated: ${id}`)
 
-    res.json({
-      success: true,
+  res.json({
+    success: true,
       message: 'Webhook secret regenerated successfully'
     })
   } catch (error) {

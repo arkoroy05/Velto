@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { databaseService } from './database'
-import { Context, ContextGraph, GraphNode, GraphEdge, GraphLayout } from '@/types'
+import { Context, ContextGraph, GraphNode, GraphEdge} from '@/types'
 import { logger } from '@/utils/logger'
 
 export class ContextGraphService {
@@ -35,14 +35,13 @@ export class ContextGraphService {
       }))
 
       // Build edges based on relationships
-      const edges: GraphEdge[] = await this.buildEdges(contexts, userId)
+      const edges: GraphEdge[] = await this.buildEdges(contexts)
 
       // Create or update the graph
       const existingGraph = await this.collection.findOne({ projectId, userId })
       
       const graphData: Omit<ContextGraph, '_id'> = {
         projectId,
-        userId,
         nodes,
         edges,
         layout: {
@@ -78,7 +77,7 @@ export class ContextGraphService {
   /**
    * Build edges between contexts based on semantic similarity and relationships
    */
-  private async buildEdges(contexts: Context[], userId: ObjectId): Promise<GraphEdge[]> {
+  private async buildEdges(contexts: Context[]): Promise<GraphEdge[]> {
     const edges: GraphEdge[] = []
     const edgeId = new Map<string, boolean>()
 
@@ -86,6 +85,8 @@ export class ContextGraphService {
       for (let j = i + 1; j < contexts.length; j++) {
         const context1 = contexts[i]
         const context2 = contexts[j]
+        
+        if (!context1 || !context2) continue
         
         // Calculate similarity score
         const similarity = this.calculateSimilarity(context1, context2)
@@ -241,7 +242,7 @@ export const getContextGraphService = (): ContextGraphService => {
 }
 
 export const contextGraphService = new Proxy({} as ContextGraphService, {
-  get(target, prop) {
+  get(_target, prop) {
     const instance = getContextGraphService()
     return instance[prop as keyof ContextGraphService]
   }

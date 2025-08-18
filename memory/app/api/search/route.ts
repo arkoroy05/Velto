@@ -1,21 +1,10 @@
-import express from 'express'
+import { NextRequest, NextResponse } from 'next/server'
 import { ObjectId } from 'mongodb'
 import { z } from 'zod'
-import { databaseService } from '@/services/database'
-import { getContextProcessor } from '@/ai/context-processor'
-import { Context, APIResponse } from '@/types'
-import { logger } from '@/utils/logger'
-
-const router = express.Router()
-
-// Extend Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string
-    }
-  }
-}
+import { getDatabase } from '../../../lib/database'
+import { getContextProcessor } from '../../../src/ai/context-processor'
+import { Context, APIResponse } from '../../../src/types'
+import { logger } from '../../../src/utils/logger'
 
 // Validation schemas
 const SearchQuerySchema = z.object({
@@ -35,28 +24,19 @@ const SearchQuerySchema = z.object({
   offset: z.number().min(0).default(0)
 })
 
-// Middleware to extract user ID from request
-const extractUserId = (req: express.Request, res: express.Response, next: express.NextFunction): void => {
-  const userId = req.headers['x-user-id'] as string || req.query['userId'] as string
-  
-  if (!userId) {
-    res.status(401).json({
-      success: false,
-      error: 'User ID required'
-    })
-    return
-  }
-  
-  req.userId = userId
-  next()
+// Helper function to extract user ID from request
+const extractUserId = (request: NextRequest): string | null => {
+  const userId = request.headers.get('x-user-id') || request.nextUrl.searchParams.get('userId')
+  return userId
 }
 
-// POST /api/v1/search - Advanced search with semantic capabilities
-router.post('/', extractUserId, async (req, res): Promise<void> => {
+// POST /api/search - Advanced search with semantic capabilities
+export async function POST(request: NextRequest) {
   try {
-    const validatedData = SearchQuerySchema.parse(req.body)
+    const body = await request.json()
+    const validatedData = SearchQuerySchema.parse(body)
     
-    const collection = databaseService.getCollection<Context>('contexts')
+    const collection = getDatabase().getCollection<Context>('contexts')
     
     // Build base filter
     let filter: any = { userId: new ObjectId(validatedData.userId) }
@@ -122,7 +102,7 @@ router.post('/', extractUserId, async (req, res): Promise<void> => {
         )
         
         // Add RAG response to results
-        res.json({
+        return NextResponse.json({
           success: true,
           data: results.map(({ context, relevance }) => ({
             id: context._id?.toString(),
@@ -142,7 +122,6 @@ router.post('/', extractUserId, async (req, res): Promise<void> => {
             total: results.length
           }
         })
-        return
         
       case 'hybrid':
         // Combine text search with semantic search
@@ -199,43 +178,43 @@ router.post('/', extractUserId, async (req, res): Promise<void> => {
       }
     }
 
-    res.json(response)
+    return NextResponse.json(response)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({
+      return NextResponse.json({
         success: false,
         error: 'Validation error',
         details: error.errors
-      })
-      return
+      }, { status: 400 })
     }
     
     logger.error('Error performing search:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to perform search'
-    })
+    return NextResponse.json(
+      { success: false, error: 'Failed to perform search' },
+      { status: 500 }
+    )
   }
-})
+}
 
-// GET /api/v1/search/suggestions - Get search suggestions
-router.get('/suggestions', extractUserId, async (req, res): Promise<void> => {
+// GET /api/search/suggestions - Get search suggestions
+export async function GET(request: NextRequest) {
   try {
-    const { query, userId } = req.query
+    const { searchParams } = request.nextUrl
+    const query = searchParams.get('query')
+    const userId = searchParams.get('userId')
     
     if (!query || !userId) {
-      res.status(400).json({
+      return NextResponse.json({
         success: false,
         error: 'Query and userId are required'
-      })
-      return
+      }, { status: 400 })
     }
 
-    const collection = databaseService.getCollection<Context>('contexts')
+    const collection = getDatabase().getCollection<Context>('contexts')
     
     // Get contexts for the user
     const contexts = await collection
-      .find({ userId: new ObjectId(userId as string) })
+      .find({ userId: new ObjectId(userId) })
       .limit(100)
       .toArray()
 
@@ -243,16 +222,16 @@ router.get('/suggestions', extractUserId, async (req, res): Promise<void> => {
     const suggestions = new Set<string>()
     
     // Add query itself as a suggestion
-    suggestions.add(query as string)
+    suggestions.add(query)
     
     // Add matching titles
     contexts.forEach(ctx => {
-      if (ctx.title?.toLowerCase().includes((query as string).toLowerCase())) {
+      if (ctx.title?.toLowerCase().includes(query.toLowerCase())) {
         suggestions.add(ctx.title)
       }
     })
 
-    res.json({
+    return NextResponse.json({
       success: true,
       data: {
         suggestions: Array.from(suggestions).slice(0, 10),
@@ -261,109 +240,9 @@ router.get('/suggestions', extractUserId, async (req, res): Promise<void> => {
     })
   } catch (error) {
     logger.error('Error getting search suggestions:', error)
-    res.status(500).json({
+    return NextResponse.json({
       success: false,
       error: 'Failed to get search suggestions'
-    })
+    }, { status: 500 })
   }
-})
-
-// GET /api/v1/search/autocomplete - Get autocomplete suggestions
-router.get('/autocomplete', extractUserId, async (req, res): Promise<void> => {
-  try {
-    const { query, userId, limit = 5 } = req.query
-    
-    if (!query || !userId) {
-      res.status(400).json({
-        success: false,
-        error: 'Query and userId are required'
-      })
-      return
-    }
-
-    const collection = databaseService.getCollection<Context>('contexts')
-    
-    // Get contexts for the user
-    const contexts = await collection
-      .find({ userId: new ObjectId(userId as string) })
-      .limit(100)
-      .toArray()
-
-    // Find matching titles and content
-    const matches = contexts
-      .filter(ctx => 
-        ctx.title?.toLowerCase().includes((query as string).toLowerCase()) ||
-        ctx.content?.toLowerCase().includes((query as string).toLowerCase())
-      )
-      .slice(0, Number(limit))
-      .map(ctx => ({
-        text: ctx.title || 'Untitled',
-        type: ctx.type,
-        id: ctx._id?.toString()
-      }))
-
-    res.json({
-      success: true,
-      data: matches
-    })
-  } catch (error) {
-    logger.error('Error getting autocomplete:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get autocomplete'
-    })
-  }
-})
-
-// GET /api/v1/search/filters - Get available search filters
-router.get('/filters', extractUserId, async (req, res): Promise<void> => {
-  try {
-    const { userId } = req.query
-    
-    if (!userId) {
-      res.status(400).json({
-        success: false,
-        error: 'UserId is required'
-      })
-      return
-    }
-
-    const collection = databaseService.getCollection<Context>('contexts')
-    
-    // Get contexts for the user
-    const contexts = await collection
-      .find({ userId: new ObjectId(userId as string) })
-      .toArray()
-
-    // Extract unique types
-    const types = [...new Set(contexts.map(ctx => ctx.type).filter(Boolean))]
-
-    // Extract unique tags
-    const allTags = contexts.flatMap(ctx => ctx.tags || [])
-    const tags = [...new Set(allTags)]
-
-    // Get date range
-    const dates = contexts.map(ctx => ctx.createdAt).filter(Boolean)
-    const dateRange = dates.length > 0 ? {
-      start: new Date(Math.min(...dates.map(d => d.getTime()))),
-      end: new Date(Math.max(...dates.map(d => d.getTime())))
-    } : null
-
-  res.json({
-    success: true,
-      data: {
-        types,
-        tags,
-        dateRange
-      }
-    })
-  } catch (error) {
-    logger.error('Error getting search filters:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get search filters'
-    })
-  }
-})
-
-export default router
+}
