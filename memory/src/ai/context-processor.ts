@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
-import { Context, AIAnalysis } from '@/types'
-import { logger } from '@/utils/logger'
+import { Context, AIAnalysis } from '../types'
+import { logger } from '../utils/logger'
 
 export class ContextProcessor {
   private gemini: GoogleGenAI

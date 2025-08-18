@@ -2,43 +2,37 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
-import { RateLimiterMemory } from 'rate-limiter-flexible'
+import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
-import { databaseService } from '@/services/database'
-import { logger, requestLogger, errorLogger } from '@/utils/logger'
+import { databaseService } from './services/database'
+import { logger, requestLogger, errorLogger } from './utils/logger'
 
 // Load environment variables
-dotenv.config()
+dotenv.config({ path: '.env.local' })
 
 // Import API routes
-import contextRoutes from '@/api/contexts'
-import projectRoutes from '@/api/projects'
-import userRoutes from '@/api/users'
-import searchRoutes from '@/api/search'
-import webhookRoutes from '@/api/webhooks'
-import analyticsRoutes from '@/api/analytics'
+import contextRoutes from './api/contexts'
+import projectRoutes from './api/projects'
+import userRoutes from './api/users'
+import searchRoutes from './api/search'
+import webhookRoutes from './api/webhooks'
+import analyticsRoutes from './api/analytics'
 
 const app = express()
 const PORT = process.env['PORT'] || 3001
 
 // Rate limiting
-const rateLimiter = new RateLimiterMemory({
-  points: 100,
-  duration: 60,
+const rateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per window
+  message: {
+    success: false,
+    error: 'Too many requests',
+    message: 'Rate limit exceeded. Please try again later.'
+  }
 })
 
-const rateLimiterMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  try {
-    await rateLimiter.consume(req.ip || 'unknown')
-    next()
-  } catch (error) {
-    res.status(429).json({
-      success: false,
-      error: 'Too many requests',
-      message: 'Rate limit exceeded. Please try again later.'
-    })
-  }
-}
+// Rate limiting middleware is applied directly
 
 // Middleware
 app.use(helmet())
@@ -49,7 +43,7 @@ app.use(cors({
 app.use(compression())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-app.use(rateLimiterMiddleware)
+app.use(rateLimiter)
 app.use(requestLogger)
 
 // Health check endpoint

@@ -1,6 +1,6 @@
-import express from 'express'
+import { Router } from 'express'
 
-const router = express.Router()
+const router = Router()
 
 // TODO: Implement analytics and metrics
 router.get('/', (_req, res) => {

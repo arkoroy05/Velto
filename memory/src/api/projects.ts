@@ -1,9 +1,9 @@
 import express from 'express'
 import { ObjectId } from 'mongodb'
 import { z } from 'zod'
-import { databaseService } from '@/services/database'
-import { Project, APIResponse } from '@/types'
-import { logger } from '@/utils/logger'
+import { databaseService } from '../services/database'
+import { Project, APIResponse } from '../types'
+import { logger } from '../utils/logger'
 
 const router = express.Router()
 

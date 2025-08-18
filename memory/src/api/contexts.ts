@@ -1,11 +1,11 @@
 import express from 'express'
 import { ObjectId } from 'mongodb'
 import { z } from 'zod'
-import { databaseService } from '@/services/database'
-import { getContextProcessor } from '@/ai/context-processor'
-import { getContextGraphService } from '@/services/context-graph'
-import { Context, APIResponse } from '@/types'
-import { logger } from '@/utils/logger'
+import { databaseService } from '../services/database'
+import { getContextProcessor } from '../ai/context-processor'
+import { getContextGraphService } from '../services/context-graph'
+import { Context, APIResponse } from '../types'
+import { logger } from '../utils/logger'
 
 const router = express.Router()
 

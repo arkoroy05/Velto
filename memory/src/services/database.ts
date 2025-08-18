@@ -1,5 +1,5 @@
 import { MongoClient, Db, Collection, Document } from 'mongodb'
-import { logger } from '@/utils/logger'
+import { logger } from '../utils/logger'
 
 export class DatabaseService {
   private client: MongoClient | null = null

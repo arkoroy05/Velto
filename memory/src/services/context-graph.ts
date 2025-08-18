@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb'
 import { databaseService } from './database'
-import { Context, ContextGraph, GraphNode, GraphEdge } from '@/types'
-import { logger } from '@/utils/logger'
+import { Context, ContextGraph, GraphNode, GraphEdge } from '../types'
+import { logger } from '../utils/logger'
 
 export class ContextGraphService {
   private collection = databaseService.getCollection<ContextGraph>('contextGraphs')
