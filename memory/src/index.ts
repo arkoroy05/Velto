@@ -19,7 +19,7 @@ import webhookRoutes from './api/webhooks'
 import analyticsRoutes from './api/analytics'
 
 const app = express()
-const PORT = process.env['PORT'] || 3001
+const PORT = parseInt(process.env['PORT'] || '3001', 10)
 
 // Rate limiting
 const rateLimiter = rateLimit({
@@ -142,10 +142,10 @@ const startServer = async () => {
     logger.info('Connected to MongoDB')
     
     // Start Express server
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 Velto Memory Backend server running on port ${PORT}`)
-      logger.info(`📊 Health check: http://localhost:${PORT}/health`)
-      logger.info(`📚 API docs: http://localhost:${PORT}/api/v1/docs`)
+      logger.info(`📊 Health check: http://0.0.0.0:${PORT}/health`)
+      logger.info(`📚 API docs: http://0.0.0.0:${PORT}/api/v1/docs`)
     })
   } catch (error) {
     logger.error('Failed to start server:', error)
